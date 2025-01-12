@@ -4,13 +4,14 @@ from wimbd.es import count_documents_containing_phrases
 from wimbd.es import get_documents_containing_phrases
 from wimbd.es import count_total_occurrences_of_unigrams
 
-API_KEY = 'api_keys/es_config_collaborators_read_all.yml'
-# API_KEY = 'api_keys/es_config_dolma_1_7_2.yml'
+# API_KEY = 'api_keys/es_config_collaborators_read_all.yml'
+API_KEY = 'api_keys/es_config_dolma_1_7_2.yml'
 
 ES = es_init(config=API_KEY)
 
 def demo():
     indices = get_indices(es=ES, return_mapping=True)
+    print(indices)
 
     # "re_pile": {"docs.count": "211036967", "properties": ["date", "text", "url"]},
     # "c4": {"docs.count": "1074273501", "properties": ["date", "subset", "text", "url"]},
@@ -32,6 +33,12 @@ def demo():
     print(unigram_counts)
 
 
+def demo_dolma():
+    """docs_v1.5_2023-11-02 and docs_v1.7_2024-06-04"""
+    doc_count = count_documents_containing_phrases("docs_v1.7_2024-06-04", "pancakes", es=ES)
+    print(f'Found {doc_count} matches!')
+
+
 def main():
     QUERY = "With the engineering of public reaction to September 11, disinformation has been used with a sophistication and depth that is historically unprecedented."
     # QUERY = "What is the"
@@ -44,5 +51,6 @@ def main():
     #     print(r)
 
 if __name__ == '__main__': 
-    main()
+    # main()
     # demo()
+    demo_dolma()

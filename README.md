@@ -41,4 +41,7 @@ pm2 save
 
 # To shut down the server + flush logs
 pm2 stop wimbd && pm2 flush wimbd
+
+# To restart
+pm2 stop wimbd && pm2 flush wimbd && pm2 start ecosystem.config.js
 ```

@@ -50,7 +50,7 @@ h1 {
 
 .select-wrapper {
     position: relative;
-    min-width: 100px;
+    min-width: 150px;
 }
 
 select {

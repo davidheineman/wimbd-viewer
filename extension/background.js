@@ -10,10 +10,16 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "getWIMBDCount") {
-    console.log("Context menu clicked!", info.selectionText);
-    
-    // First get the selection coordinates from the content script
     chrome.tabs.sendMessage(tab.id, { type: 'getSelectionCoords' }, (response) => {
+      // First, show the loading popup
+      chrome.tabs.sendMessage(tab.id, {
+        type: 'showResults',
+        results: '<div class="loading">Loading...</div>',
+        x: response?.x,
+        y: response?.y,
+        query: info.selectionText
+      });
+      
       const selectedText = info.selectionText;
       fetchCounts(selectedText, response, tab);
     });
@@ -21,17 +27,17 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 async function fetchCounts(query, coords, tab) {
-  console.log("Fetching counts for:", query, "with coords:", coords);
   try {
-    const response = await fetch(
-      `http://localhost:3000/counts?q=${encodeURIComponent(query)}&index=re_pile`
-    );
-    console.log("Response received:", response);
+    // const index_name = 're_pile';
+    const index_name = 'docs_v1.7_2024-06-04';
+    const seeMoreUrl = `http://localhost:3000/index.html?idx=${index_name}&q=${encodeURIComponent(query)}`;
+    const response = await fetch(`http://localhost:3000/counts?index=${index_name}&q=${encodeURIComponent(query)}`);
     const data = await response.json();
-    
+
+
     chrome.tabs.sendMessage(tab.id, {
       type: 'showResults',
-      results: `${data.count} occurrences in the Pile`,
+      results: `${data.count} occurrences in Dolma 1.7 (<a href="${seeMoreUrl}" target="_blank">see more</a>)`,
       query: query,
       x: coords?.x,
       y: coords?.y,
@@ -41,7 +47,7 @@ async function fetchCounts(query, coords, tab) {
 
   } catch (error) {
     console.error('Error fetching counts:', error);
-    
+
     chrome.tabs.sendMessage(tab.id, {
       type: 'showResults',
       results: `<div class="error">Error: ${error.message}</div>`,
@@ -50,26 +56,21 @@ async function fetchCounts(query, coords, tab) {
     });
   }
 }
-
-// Add this message listener to handle popup requests for the last result
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'getLastResult' && lastResult) {
     sendResponse(lastResult);
   }
 });
-
-// In your background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    // First get the coordinates
-    chrome.tabs.sendMessage(sender.tab.id, { type: 'getSelectionCoords' }, coords => {
-        // Then create popup with results at those coordinates
-        chrome.tabs.sendMessage(sender.tab.id, {
-            type: 'showResults',
-            results: request.results,
-            x: coords?.x,
-            y: coords?.y,
-            scrollX: coords?.scrollX,
-            scrollY: coords?.scrollY
-        });
+
+  chrome.tabs.sendMessage(sender.tab.id, { type: 'getSelectionCoords' }, coords => {
+    chrome.tabs.sendMessage(sender.tab.id, {
+      type: 'showResults',
+      results: request.results,
+      x: coords?.x,
+      y: coords?.y,
+      scrollX: coords?.scrollX,
+      scrollY: coords?.scrollY
     });
+  });
 }); 

@@ -29,7 +29,10 @@ app.get('/search', async (req, res) => {
                         text: q
                     }
                 }
-            }
+            },
+            // size: 50
+            size: 100
+            // size: 500
         });
         res.json(result.hits.hits);
     } catch (error) {

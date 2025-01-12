@@ -6,12 +6,16 @@ A chrome extension and search page for [WIMBD](https://wimbd.apps.allenai.org/).
 
 Here the WIMBD search engine:
 
-<img src="assets/demo-search.png" style="max-width: 500px; display: block; margin: 0 auto;" />
+<div align="center">
+<img src="assets/demo-search.png" width=500 style="display: block; margin: 0 auto;" />
+</div>
 <br />
 
 The chrome extension allows highlighting text on a page and searching occurances:
 
-<img src="assets/demo-highlight.png" style="max-width: 500px; display: block; margin: 0 auto;" />
+<div align="center">
+<img src="assets/demo-highlight.png" width=500 style="display: block; margin: 0 auto;" />
+</div>
 
 
 ### Setup

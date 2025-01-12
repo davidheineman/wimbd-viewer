@@ -312,3 +312,28 @@ button:hover {
 .search-input {
     height: 40px !important;
 }
+
+.card-content.scrollable {
+    overflow-x: auto;
+    white-space: nowrap;
+    max-width: 100%;
+    scrollbar-width: thin;  /* For Firefox */
+}
+
+/* For Webkit browsers (Chrome, Safari) */
+.card-content.scrollable::-webkit-scrollbar {
+    height: 6px;
+}
+
+.card-content.scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.card-content.scrollable::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.card-content.scrollable::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

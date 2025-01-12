@@ -70,6 +70,18 @@
 
         document.addEventListener('DOMContentLoaded', loadFromURL);
 
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
         async function performSearch() {
             const searchInput = document.getElementById('searchInput').value;
             const selectedIndex = document.getElementById('indexSelect').value;
@@ -85,6 +97,8 @@
             resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
 
             try {
+                console.log('Searching...')
+                
                 // First, fetch the counts from the /counts endpoint
                 const countsResponse = await fetch(`http://localhost:3000/counts?q=${encodeURIComponent(searchInput)}&index=${selectedIndex}`);
                 const countsData = await countsResponse.json();
@@ -92,6 +106,8 @@
                 // Then fetch the search results
                 const response = await fetch(`http://localhost:3000/search?q=${encodeURIComponent(searchInput)}&index=${selectedIndex}`);
                 const data = await response.json();
+
+                console.log(data)
 
                 let resultsHtml = '';
 
@@ -135,21 +151,57 @@
                         <div class="result-cards">
                             <div class="result-card">
                                 <div class="card-label">Index</div>
-                                <div class="card-content">${escapeHtml(result._index)}</div>
+                                <div class="card-content scrollable">${escapeHtml(result._index)}</div>
                             </div>
+                            ${result._source.archive ? `
+                            <div class="result-card">
+                                <div class="card-label">Archive</div>
+                                <div class="card-content scrollable">${escapeHtml(result._source.archive || 'Unknown')}</div>
+                            </div>
+                            ` : ''}
                             ${result._source.meta ? `
                             <div class="result-card">
                                 <div class="card-label">Source</div>
-                                <div class="card-content">${escapeHtml(result._source.meta.pile_set_name || 'Unknown')}</div>
+                                <div class="card-content scrollable">${escapeHtml(result._source.meta.pile_set_name || 'Unknown')}</div>
+                            </div>
+                            ` : ''}
+                            ${result._source.source ? `
+                            <div class="result-card">
+                                <div class="card-label">Source</div>
+                                <div class="card-content scrollable">${escapeHtml(result._source.source || 'Unknown')}</div>
+                            </div>
+                            ` : ''}
+                            ${result._source.dolma_id ? `
+                            <div class="result-card">
+                                <div class="card-label">Dolma ID</div>
+                                <div class="card-content scrollable">${escapeHtml(result._source.dolma_id || 'Unknown')}</div>
                             </div>
                             ` : ''}
                             <div class="result-card">
                                 <div class="card-label">ID</div>
-                                <div class="card-content">${escapeHtml(result._id)}</div>
+                                <div class="card-content scrollable">${escapeHtml(result._id)}</div>
                             </div>
+                            ${result._source.url ? `
+                            <div class="result-card">
+                                <div class="card-label">URL</div>
+                                <div class="card-content scrollable">${escapeHtml(result._source.url || 'Unknown')}</div>
+                            </div>
+                            ` : ''}
+                            ${result._source.created ? `
+                            <div class="result-card">
+                                <div class="card-label">Created</div>
+                                <div class="card-content scrollable">${formatDate(result._source.created)}</div>
+                            </div>
+                            ` : ''}
+                            ${result._source.added ? `
+                            <div class="result-card">
+                                <div class="card-label">Added</div>
+                                <div class="card-content scrollable">${formatDate(result._source.added)}</div>
+                            </div>
+                            ` : ''}
                             <div class="result-card">
                                 <div class="card-label">Score</div>
-                                <div class="card-content">${result._score.toFixed(2)}</div>
+                                <div class="card-content scrollable">${result._score.toFixed(2)}</div>
                             </div>
                         </div>
                         <div class="result-card text-card">

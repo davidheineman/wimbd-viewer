@@ -3,3 +3,4 @@ api_keys/
 node_modules/
 .env
 ecosystem.config.js
+package-lock.json

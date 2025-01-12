@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WIMBD Search</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="search-container">
+            <div class="search-box">
+                <div class="header">
+                    <img src="icon.svg" alt="WIMBD Icon" class="header-icon">
+                    <h1>WIMBD</h1>
+                </div>
+                <input class='search-input' type="text" id="searchInput"
+                    placeholder="Search LLM pre-training datasets..."
+                    onkeyup="if(event.key === 'Enter') performSearch()">
+                <div class="select-wrapper search-input">
+                    <select id="indexSelect">
+                        <option value="re_pile">Pile</option>
+                        <option value="c4">C4</option>
+                    </select>
+                </div>
+                <button class='search-input' onclick="performSearch()">
+                    search
+                </button>
+            </div>
+        </div>
+
+        <div id="results" class="results-container"></div>
+    </div>
+
+    <script>
+        function updateURLParameters(query, index) {
+            const url = new URL(window.location);
+            if (query) {
+                url.searchParams.set('q', query);
+            } else {
+                url.searchParams.delete('q');
+            }
+            if (index) {
+                url.searchParams.set('idx', index);
+            } else {
+                url.searchParams.delete('idx');
+            }
+            window.history.pushState({}, '', url);
+        }
+
+        function loadFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('q');
+            const index = urlParams.get('idx');
+            if (query) {
+                document.getElementById('searchInput').value = query;
+            }
+            if (index) {
+                document.getElementById('indexSelect').value = index;
+            }
+
+            if (query) {
+                performSearch();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadFromURL);
+
+        async function performSearch() {
+            const searchInput = document.getElementById('searchInput').value;
+            const selectedIndex = document.getElementById('indexSelect').value;
+            const resultsDiv = document.getElementById('results');
+
+            updateURLParameters(searchInput, selectedIndex);
+
+            if (!searchInput.trim()) {
+                resultsDiv.innerHTML = '<div class="error-message">Please enter a search term</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = '<div class="loading">Searching...</div>';
+
+            try {
+                // First, fetch the counts from the /counts endpoint
+                const countsResponse = await fetch(`http://localhost:3000/counts?q=${encodeURIComponent(searchInput)}&index=${selectedIndex}`);
+                const countsData = await countsResponse.json();
+
+                // Then fetch the search results
+                const response = await fetch(`http://localhost:3000/search?q=${encodeURIComponent(searchInput)}&index=${selectedIndex}`);
+                const data = await response.json();
+
+                let resultsHtml = '';
+
+                // Add counts section
+                if (countsData && countsData.count !== undefined) {
+                    resultsHtml += `
+                        <div class="counts-header">Total Matches: ${countsData.count.toLocaleString()}</div>
+                    `;
+                }
+
+                if (data.length === 0) {
+                    resultsHtml += '<div class="no-results">No results found</div>';
+                    resultsDiv.innerHTML = resultsHtml;
+                    return;
+                }
+
+                // Add the regular search results
+                resultsHtml += data.map(result => {
+                    const fullText = result._source.text;
+                    const searchQuery = searchInput.trim();
+
+                    // Find the first match position
+                    const regex = new RegExp(escapeRegExp(searchQuery), 'i');
+                    const matchIndex = fullText.search(regex);
+
+                    // Calculate the span of text to show (400 chars before and after the match)
+                    const spanStart = Math.max(0, matchIndex - 400);
+                    const spanEnd = Math.min(fullText.length, matchIndex + searchQuery.length + 400);
+                    const truncatedText = matchIndex >= 0
+                        ? (spanStart > 0 ? '... ' : '') +
+                        fullText.slice(spanStart, spanEnd) +
+                        (spanEnd < fullText.length ? ' ...' : '')
+                        : fullText.slice(0, 800) + ' ...';
+
+                    const isLongText = fullText.length > truncatedText.length;
+                    const processedText = highlightSearchTerms(truncatedText, searchQuery);
+                    const processedFullText = highlightSearchTerms(fullText, searchQuery);
+
+                    return `
+                    <div class="search-result">
+                        <div class="result-cards">
+                            <div class="result-card">
+                                <div class="card-label">Index</div>
+                                <div class="card-content">${escapeHtml(result._index)}</div>
+                            </div>
+                            ${result._source.meta ? `
+                            <div class="result-card">
+                                <div class="card-label">Source</div>
+                                <div class="card-content">${escapeHtml(result._source.meta.pile_set_name || 'Unknown')}</div>
+                            </div>
+                            ` : ''}
+                            <div class="result-card">
+                                <div class="card-label">ID</div>
+                                <div class="card-content">${escapeHtml(result._id)}</div>
+                            </div>
+                            <div class="result-card">
+                                <div class="card-label">Score</div>
+                                <div class="card-content">${result._score.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div class="result-card text-card">
+                            <div class="card-header">
+                                <div class="card-label-group">
+                                    <div class="card-label">Content</div>
+                                    <button class="copy-button" onclick="copyContent(this, '${encodeURIComponent(result._source.text).replace(/'/g, "\\'")}')" >
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-content ${isLongText ? 'collapsed' : ''} card-text" 
+                                 ${isLongText ? `onclick="toggleText(this)" 
+                                     data-full-text="${encodeURIComponent(processedFullText)}"
+                                     data-truncated-text="${encodeURIComponent(processedText)}"` : ''}>
+                                ${processedText}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+
+                resultsDiv.innerHTML = resultsHtml;
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="error-message">Error: ' + error.message + '</div>';
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function highlightSearchTerms(text, searchQuery) {
+            let processedText = escapeHtml(text);
+
+            if (searchQuery) {
+                const regex = new RegExp(`(${escapeRegExp(searchQuery)})`, 'gi');
+                processedText = processedText.replace(regex, '<b>$1</b>');
+            }
+
+            return processedText;
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function toggleText(element) {
+            const isCollapsed = element.classList.contains('collapsed');
+            if (isCollapsed) {
+                element.innerHTML = decodeURIComponent(element.dataset.fullText);
+                element.classList.remove('collapsed');
+            } else {
+                element.innerHTML = decodeURIComponent(element.dataset.truncatedText);
+                element.classList.add('collapsed');
+            }
+        }
+
+        async function copyContent(button, encodedText) {
+            const text = decodeURIComponent(encodedText);
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text:', err);
+                button.textContent = 'Failed to copy';
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+
+</html>

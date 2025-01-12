@@ -1,0 +1,15 @@
+{
+  "name": "elasticsearch-query-interface",
+  "version": "1.0.0",
+  "description": "Proxy to query ElasticSearch",
+  "main": "query.js",
+  "scripts": {
+    "start": "node query.js"
+  },
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.21.2"
+  }
+}

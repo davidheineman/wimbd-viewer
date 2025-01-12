@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "WIMBD",
+  "version": "1.0",
+  "description": "Count text occurences in LLM pre-training data",
+  "permissions": [
+    "contextMenus",
+    "activeTab"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "css": ["content.css"],
+    "js": ["content.js"]
+  }],
+  "host_permissions": [
+    "http://localhost:3000/*"
+  ]
+} 

@@ -1,1 +1,3 @@
 wimbd
+requests
+gradio
